@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
+  <POU Name="FNB_CallLogic" Id="{fb3780b4-b9f5-4940-9ee8-dbc2187584c4}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FNB_CallLogic
+VAR_INPUT
+	Buttons : ARRAY[0..10] OF BOOL;
+    Currentlevel : ARRAY[0..10] OF BOOL;
+    Calldown : ARRAY[0..9] OF BOOL;
+    Callup : ARRAY[1..10] OF BOOL;
+    DoorMotorOpen : BOOL;
+END_VAR
+VAR_OUTPUT
+	calls : ARRAY[0..10] OF BOOL;
+    Buttonslamp : ARRAY[0..10] OF BOOL;
+    Calldownlamp : ARRAY[0..9] OF BOOL;
+    Calluplamp : ARRAY[1..10] OF BOOL;
+END_VAR
+VAR
+	i : INT;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FOR i:=0 TO 10 DO
+	IF Buttons[i] AND NOT Currentlevel[i] THEN
+		calls[i] := Buttons[i];
+		Buttonslamp[i] := Buttons[i];
+
+	ELSIF Currentlevel[i] AND Doormotoropen THEN
+		calls[i] := FALSE;
+		Buttonslamp[i] := FALSE;
+
+		END_IF
+END_FOR
+
+(*Le hívások*)
+FOR i:=0 TO 9 DO
+	IF Calldown[i] AND NOT Currentlevel[i] THEN
+		calls[i] := Calldown[i];
+		Calldownlamp[i] := Calldown[i];
+
+	ELSIF Currentlevel[i] AND Doormotoropen THEN
+		Calldownlamp[i] := FALSE;
+		calls[i] := FALSE;
+	END_IF
+END_FOR
+
+(*Felhívások*)
+FOR i:=1 TO 10 DO
+	IF Callup[i] AND NOT Currentlevel[i] THEN
+		calls[i] := Callup[i];
+		Calluplamp[i] := Callup[i];
+
+	ELSIF Currentlevel[i] AND DoorMotorOpen THEN
+		Calluplamp[i] := FALSE;
+		calls[i] := FALSE;
+	END_IF
+END_FOR
+]]></ST>
+    </Implementation>
+    <LineIds Name="FNB_CallLogic">
+      <LineId Id="24" Count="34" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

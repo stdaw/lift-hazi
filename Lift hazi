@@ -1,109 +1,51 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
-  <POU Name="MAIN" Id="{f44d6768-8f23-446b-b63e-3b950956c7f0}" SpecialFunc="None">
-    <Declaration><![CDATA[PROGRAM MAIN
-VAR
-i_bCalldown AT %I* : ARRAY[0..9] OF BOOL;
-i_bCallup AT %I* : ARRAY[1..10] OF BOOL;
-i_bCurrentlevel AT %I* : ARRAY[0..10] OF BOOL;
-i_bButtons AT %I* : ARRAY [0..10] OF BOOL;
-i_bDooropen AT %I* : BOOL;
-i_bDoorclosed AT %I* : BOOL;
-
-o_bCalldownlamp AT %Q* : ARRAY[0..9] OF BOOL;
-o_bCalluplamp AT %Q* : ARRAY[1..10] OF BOOL;
-o_bButtonslamp AT %Q* : ARRAY[0..10] OF BOOL;
-o_bMotordown AT %Q* : BOOL;
-o_bMotorup AT %Q* : BOOL;
-o_bDoorMotorOpen AT %Q* : BOOL;
-o_bDoorMotorClose AT %Q* : BOOL;
-
-i : INT;
-calls : ARRAY [0..10] OF BOOL;
-level : INT;
-Buttonpressed : BOOL ;
-Buttonup : BOOL;
-Buttondown : BOOL;
-calldownlevel : INT;
-calluplevel : INT;
-
-
-callhandle : BOOL;
-
+  <POU Name="FNB_Door_logic" Id="{9721a28e-2319-414d-aa0c-be057b189e9b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK PUBLIC FNB_Door_logic
+VAR_INPUT
+	Buttons : ARRAY[0..10] OF  BOOL;
+	Callup : ARRAY[1..10] OF  BOOL;
+	Calldown : ARRAY[0..9] OF  BOOL;
+	Dooropen : BOOL;
 END_VAR
-
-
+VAR_OUTPUT
+	Buttonpressed : BOOL;
+	Buttonup : BOOL;
+	Buttondown : BOOL;
+	calldownlevel : INT;
+	calluplevel : INT;
+	DoorMotorOpen : BOOL;
+	DoorMotorClose : BOOL;
+	level : INT;
+	cabinlevel : INT;
+END_VAR
 VAR
-	Timer : TON;
+	i : INT;
+	Timer : Ton;
 	PT : TIME := T#10S;
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[(*Fülke gombok hívásai*)
-FOR i:=0 TO 10 DO
-	IF i_bButtons[i] AND NOT i_bCurrentlevel[i] THEN
-		calls[i] := i_bButtons[i];
-		o_bButtonslamp[i] := i_bButtons[i];
-
-	ELSIF i_bCurrentlevel[i] AND o_bDoormotoropen THEN
-		calls[i] := FALSE;
-		o_bButtonslamp[i] := FALSE;
-
-		END_IF
-END_FOR
-
-(*Le hívások*)
-FOR i:=0 TO 9 DO
-	IF i_bCalldown[i] AND NOT i_bCurrentlevel[i] THEN
-		calls[i] := i_bCalldown[i];
-		o_bCalldownlamp[i] := i_bCalldown[i];
-
-	ELSIF i_bCurrentlevel[i] AND o_bDoormotoropen THEN
-		o_bCalldownlamp[i] := FALSE;
-		calls[i] := FALSE;
-	END_IF
-END_FOR
-
-(*Felhívások*)
-FOR i:=1 TO 10 DO
-	IF i_bCallup[i] AND NOT i_bCurrentlevel[i] THEN
-		calls[i] := i_bCallup[i];
-		o_bCalluplamp[i] := i_bCallup[i];
-
-	ELSIF i_bCurrentlevel[i] AND o_bDoorMotorOpen THEN
-		o_bCalluplamp[i] := FALSE;
-		calls[i] := FALSE;
-	END_IF
-END_FOR
-
-(*aktuális szint beállítása*)
-FOR i := 0 TO 10 DO
-	IF i_bCurrentlevel[i] THEN
-		level := i;
-		EXIT;
-	END_IF
-END_FOR
-
-
-(*ajtók kezelése*)
+      <ST><![CDATA[(*ajtók kezelése*)
 
 FOR i := 0 TO 10 DO
-	IF i_bButtons[i] THEN
+	IF  Buttons[i] THEN
 		Buttonpressed := TRUE;
+		cabinlevel := i;
 		EXIT;
 	END_IF
 END_FOR
 
-FOR i := 0 TO 10 DO
-	IF i_bCalldown[i] THEN
+FOR i := 0 TO 9 DO
+	IF  Calldown[i] THEN
 		Buttondown := TRUE;
 		calldownlevel :=i;
 		EXIT;
 	END_IF
 END_FOR
 
-FOR i := 0 TO 10 DO
-	IF i_bCallup[i] THEN
+FOR i := 1 TO 10 DO
+	IF  Callup[i] THEN
 		Buttonup := TRUE;
 		calluplevel:= i;
 		EXIT;
@@ -112,11 +54,11 @@ END_FOR
 
 
 IF NOT Buttonpressed AND NOT Buttonup AND NOT Buttondown THEN
-	o_bDoormotoropen:= TRUE;
+	DoorMotorOpen:= TRUE;
 	Timer(IN:=FALSE);
 
-	ELSIF Buttonpressed AND i_bDooropen THEN
-		o_bDoorMotorClose := TRUE;
+	ELSIF Buttonpressed AND Dooropen THEN
+		DoorMotorClose := TRUE;
 		Timer(IN:=TRUE);
 
 	ELSIF NOT Buttonpressed AND Buttonup THEN
@@ -130,104 +72,17 @@ IF NOT Buttonpressed AND NOT Buttonup AND NOT Buttondown THEN
 		END_IF
 
 		IF Timer.Q THEN
-		 o_bDoormotorclose := TRUE;
+		 DoorMotorClose := TRUE;
 		 END_IF
 	END_IF
+
+
+
 ]]></ST>
     </Implementation>
-    <Method Name="Call_Handle" Id="{1efa1066-9d83-4fe5-a9f4-4c1429f11412}">
-      <Declaration><![CDATA[METHOD cabincalls : BOOL
-VAR_INPUT
-	i : INT;
-END_VAR]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[(*Fülke gombok hívásai*)
-FOR i:=0 TO 10 DO
-	IF i_bButtons[i] AND NOT i_bCurrentlevel[i] THEN
-		calls[i] := i_bButtons[i];
-		o_bButtonslamp[i] := i_bButtons[i];
-
-	ELSIF i_bCurrentlevel[i] AND o_bDoormotoropen THEN
-		calls[i] := FALSE;
-		o_bButtonslamp[i] := FALSE;
-
-		END_IF
-END_FOR
-
-(*Le hívások*)
-FOR i:=0 TO 9 DO
-	IF i_bCalldown[i] AND NOT i_bCurrentlevel[i] THEN
-		calls[i] := i_bCalldown[i];
-		o_bCalldownlamp[i] := i_bCalldown[i];
-
-	ELSIF i_bCurrentlevel[i] AND o_bDoormotoropen THEN
-		o_bCalldownlamp[i] := FALSE;
-		calls[i] := FALSE;
-	END_IF
-END_FOR
-
-(*Felhívások*)
-FOR i:=1 TO 10 DO
-	IF i_bCallup[i] AND NOT i_bCurrentlevel[i] THEN
-		calls[i] := i_bCallup[i];
-		o_bCalluplamp[i] := i_bCallup[i];
-
-	ELSIF i_bCurrentlevel[i] AND o_bDoorMotorOpen THEN
-		o_bCalluplamp[i] := FALSE;
-		calls[i] := FALSE;
-	END_IF
-END_FOR]]></ST>
-      </Implementation>
-    </Method>
-    <LineIds Name="MAIN">
-      <LineId Id="257" Count="34" />
-      <LineId Id="74" Count="0" />
-      <LineId Id="221" Count="0" />
-      <LineId Id="147" Count="0" />
-      <LineId Id="222" Count="1" />
-      <LineId Id="225" Count="0" />
-      <LineId Id="245" Count="0" />
-      <LineId Id="226" Count="0" />
-      <LineId Id="224" Count="0" />
-      <LineId Id="146" Count="0" />
-      <LineId Id="168" Count="1" />
-      <LineId Id="171" Count="0" />
-      <LineId Id="173" Count="0" />
-      <LineId Id="184" Count="0" />
-      <LineId Id="186" Count="0" />
-      <LineId Id="188" Count="0" />
-      <LineId Id="187" Count="0" />
-      <LineId Id="185" Count="0" />
-      <LineId Id="207" Count="3" />
-      <LineId Id="231" Count="0" />
-      <LineId Id="211" Count="1" />
-      <LineId Id="194" Count="0" />
-      <LineId Id="213" Count="0" />
-      <LineId Id="195" Count="2" />
-      <LineId Id="232" Count="0" />
-      <LineId Id="198" Count="1" />
-      <LineId Id="193" Count="0" />
-      <LineId Id="192" Count="0" />
-      <LineId Id="191" Count="0" />
-      <LineId Id="81" Count="0" />
-      <LineId Id="181" Count="0" />
-      <LineId Id="183" Count="0" />
-      <LineId Id="182" Count="0" />
-      <LineId Id="214" Count="0" />
-      <LineId Id="217" Count="3" />
-      <LineId Id="233" Count="2" />
-      <LineId Id="237" Count="0" />
-      <LineId Id="239" Count="2" />
-      <LineId Id="238" Count="0" />
-      <LineId Id="227" Count="0" />
-      <LineId Id="243" Count="1" />
-      <LineId Id="216" Count="0" />
-      <LineId Id="85" Count="0" />
-      <LineId Id="84" Count="0" />
-    </LineIds>
-    <LineIds Name="MAIN.Call_Handle">
-      <LineId Id="6" Count="34" />
-      <LineId Id="5" Count="0" />
+    <LineIds Name="FNB_Door_logic">
+      <LineId Id="10" Count="51" />
+      <LineId Id="9" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>
