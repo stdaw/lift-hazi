@@ -21,13 +21,21 @@ o_bDoorMotorClose AT %Q* : BOOL;
 i : INT;
 calls : ARRAY [0..10] OF BOOL;
 level : INT;
-timer : TON;
+Buttonpressed : BOOL ;
+Buttonup : BOOL;
+Buttondown : BOOL;
+calldownlevel : INT;
+calluplevel : INT;
+
+
+callhandle : BOOL;
+
 END_VAR
+
 
 VAR
 	Timer : TON;
 	PT : TIME := T#10S;
-
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -68,65 +76,158 @@ FOR i:=1 TO 10 DO
 	END_IF
 END_FOR
 
-IF i_bCurrentlevel[level] AND o_bDoormotoropen THEN
+(*aktuális szint beállítása*)
+FOR i := 0 TO 10 DO
+	IF i_bCurrentlevel[i] THEN
+		level := i;
+		EXIT;
+	END_IF
+END_FOR
 
-	IF i_bDooropen AND i_bButtons[i] THEN
-		o_bDoormotorclose := TRUE;
-		Timer(IN := FALSE);
 
-	ELSIF i_bDooropen AND NOT i_bButtons[i] THEN
-		  Timer(IN := TRUE);
+(*ajtók kezelése*)
 
-	 	IF Timer.Q THEN
+FOR i := 0 TO 10 DO
+	IF i_bButtons[i] THEN
+		Buttonpressed := TRUE;
+		EXIT;
+	END_IF
+END_FOR
+
+FOR i := 0 TO 10 DO
+	IF i_bCalldown[i] THEN
+		Buttondown := TRUE;
+		calldownlevel :=i;
+		EXIT;
+	END_IF
+END_FOR
+
+FOR i := 0 TO 10 DO
+	IF i_bCallup[i] THEN
+		Buttonup := TRUE;
+		calluplevel:= i;
+		EXIT;
+	END_IF
+END_FOR
+
+
+IF NOT Buttonpressed AND NOT Buttonup AND NOT Buttondown THEN
+	o_bDoormotoropen:= TRUE;
+	Timer(IN:=FALSE);
+
+	ELSIF Buttonpressed AND i_bDooropen THEN
+		o_bDoorMotorClose := TRUE;
+		Timer(IN:=TRUE);
+
+	ELSIF NOT Buttonpressed AND Buttonup THEN
+		IF calldownlevel < level THEN
+			Timer(IN := TRUE);
+		END_IF
+
+	ELSIF NOT Buttonpressed AND Buttondown THEN
+		IF calluplevel > level THEN
+			Timer(IN := TRUE);
+		END_IF
+
+		IF Timer.Q THEN
 		 o_bDoormotorclose := TRUE;
 		 END_IF
-
 	END_IF
-
-END_IF]]></ST>
+]]></ST>
     </Implementation>
+    <Method Name="Call_Handle" Id="{1efa1066-9d83-4fe5-a9f4-4c1429f11412}">
+      <Declaration><![CDATA[METHOD cabincalls : BOOL
+VAR_INPUT
+	i : INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(*Fülke gombok hívásai*)
+FOR i:=0 TO 10 DO
+	IF i_bButtons[i] AND NOT i_bCurrentlevel[i] THEN
+		calls[i] := i_bButtons[i];
+		o_bButtonslamp[i] := i_bButtons[i];
+
+	ELSIF i_bCurrentlevel[i] AND o_bDoormotoropen THEN
+		calls[i] := FALSE;
+		o_bButtonslamp[i] := FALSE;
+
+		END_IF
+END_FOR
+
+(*Le hívások*)
+FOR i:=0 TO 9 DO
+	IF i_bCalldown[i] AND NOT i_bCurrentlevel[i] THEN
+		calls[i] := i_bCalldown[i];
+		o_bCalldownlamp[i] := i_bCalldown[i];
+
+	ELSIF i_bCurrentlevel[i] AND o_bDoormotoropen THEN
+		o_bCalldownlamp[i] := FALSE;
+		calls[i] := FALSE;
+	END_IF
+END_FOR
+
+(*Felhívások*)
+FOR i:=1 TO 10 DO
+	IF i_bCallup[i] AND NOT i_bCurrentlevel[i] THEN
+		calls[i] := i_bCallup[i];
+		o_bCalluplamp[i] := i_bCallup[i];
+
+	ELSIF i_bCurrentlevel[i] AND o_bDoorMotorOpen THEN
+		o_bCalluplamp[i] := FALSE;
+		calls[i] := FALSE;
+	END_IF
+END_FOR]]></ST>
+      </Implementation>
+    </Method>
     <LineIds Name="MAIN">
-      <LineId Id="2" Count="0" />
-      <LineId Id="28" Count="0" />
-      <LineId Id="33" Count="1" />
-      <LineId Id="90" Count="0" />
-      <LineId Id="96" Count="0" />
-      <LineId Id="91" Count="0" />
-      <LineId Id="117" Count="0" />
-      <LineId Id="95" Count="0" />
-      <LineId Id="92" Count="1" />
-      <LineId Id="31" Count="0" />
+      <LineId Id="257" Count="34" />
       <LineId Id="74" Count="0" />
-      <LineId Id="37" Count="3" />
-      <LineId Id="97" Count="0" />
-      <LineId Id="100" Count="1" />
-      <LineId Id="104" Count="0" />
-      <LineId Id="110" Count="0" />
-      <LineId Id="103" Count="0" />
-      <LineId Id="36" Count="0" />
-      <LineId Id="27" Count="0" />
-      <LineId Id="26" Count="0" />
-      <LineId Id="43" Count="2" />
-      <LineId Id="105" Count="2" />
-      <LineId Id="109" Count="0" />
-      <LineId Id="113" Count="0" />
-      <LineId Id="46" Count="0" />
-      <LineId Id="48" Count="0" />
-      <LineId Id="75" Count="0" />
+      <LineId Id="221" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="222" Count="1" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="168" Count="1" />
+      <LineId Id="171" Count="0" />
+      <LineId Id="173" Count="0" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="207" Count="3" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="211" Count="1" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="195" Count="2" />
+      <LineId Id="232" Count="0" />
+      <LineId Id="198" Count="1" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="191" Count="0" />
       <LineId Id="81" Count="0" />
-      <LineId Id="139" Count="0" />
-      <LineId Id="118" Count="1" />
-      <LineId Id="121" Count="0" />
-      <LineId Id="123" Count="0" />
-      <LineId Id="122" Count="0" />
-      <LineId Id="126" Count="0" />
-      <LineId Id="137" Count="0" />
-      <LineId Id="124" Count="0" />
-      <LineId Id="135" Count="1" />
-      <LineId Id="120" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="217" Count="3" />
+      <LineId Id="233" Count="2" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="239" Count="2" />
+      <LineId Id="238" Count="0" />
+      <LineId Id="227" Count="0" />
+      <LineId Id="243" Count="1" />
+      <LineId Id="216" Count="0" />
       <LineId Id="85" Count="0" />
-      <LineId Id="89" Count="0" />
       <LineId Id="84" Count="0" />
+    </LineIds>
+    <LineIds Name="MAIN.Call_Handle">
+      <LineId Id="6" Count="34" />
+      <LineId Id="5" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>
