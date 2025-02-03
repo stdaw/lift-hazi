@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
+  <POU Name="MAIN" Id="{f44d6768-8f23-446b-b63e-3b950956c7f0}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+i_bCalldown AT %I* : ARRAY[0..9] OF BOOL;
+i_bCallup AT %I* : ARRAY[1..10] OF BOOL;
+i_bCurrentlevel AT %I* : ARRAY[0..10] OF BOOL;
+i_bButtons AT %I* : ARRAY [0..10] OF BOOL;
+i_bDooropen AT %I* : BOOL;
+i_bDoorclosed AT %I* : BOOL;
+
+o_bCalldownlamp AT %Q* : ARRAY[0..9] OF BOOL;
+o_bCalluplamp AT %Q* : ARRAY[1..10] OF BOOL;
+o_bButtonslamp AT %Q* : ARRAY[0..10] OF BOOL;
+o_bMotordown AT %Q* : BOOL;
+o_bMotorup AT %Q* : BOOL;
+o_bDoorMotorOpen AT %Q* : BOOL;
+o_bDoorMotorClose AT %Q* : BOOL;
+
+FN_CallLogic : FNB_CallLogic ;
+FNB_Currentlvl: FNB_Currentlvl;
+FNB_Door_logic: FNB_Door_logic;
+
+calls : ARRAY [0..10] OF BOOL;
+level : INT;
+Buttonpressed : BOOL ;
+Buttonup : BOOL;
+Buttondown : BOOL;
+calldownlevel : INT;
+calluplevel : INT;
+cabinlevel : INT;
+
+
+
+targetlevel: INT;
+
+	FNB_Door_logic: FNB_Door_logic;
+
+END_VAR
+
+
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FN_CallLogic(
+	Buttons:= i_bButtons ,
+	Currentlevel:= i_bCurrentlevel ,
+	Calldown:= i_bCalldown ,
+	Callup:= i_bCallup ,
+	DoorMotorOpen:= o_bDoorMotorOpen ,
+	calls=> calls ,
+	Buttonslamp=> o_bButtonslamp ,
+	Calldownlamp=> o_bCalldownlamp ,
+	Calluplamp=> o_bCalluplamp );
+
+FNB_Currentlvl(currentlevel:= i_bCurrentlevel, level=>level );
+
+
+FNB_Door_logic(
+	Buttons:=i_bButtons ,
+	Callup:=i_bCallup ,
+	Calldown:=i_bCalldown ,
+	Dooropen:=i_bDooropen ,
+	Buttonpressed=>Buttonpressed ,
+	Buttonup=>Buttonup ,
+	Buttondown=>Buttondown ,
+	calldownlevel=>calldownlevel ,
+	calluplevel=>calluplevel ,
+	DoorMotorOpen=>o_bDoorMotorOpen ,
+	DoorMotorClose=>o_bDoorMotorClose ,
+	level=>level ,
+	cabinlevel=>Cabinlevel );
+
+
+(* Lift motor*)
+IF Buttonpressed AND i_bDoorclosed THEN
+	IF targetlevel > level THEN
+		o_bMotorup := TRUE;
+		o_bMotordown:= FALSE;
+
+		IF Buttonup AND (calluplevel < targetlevel) THEN
+		  targetlevel := calluplevel;
+
+		  IF targetlevel = calluplevel THEN
+			  o_bMotorup := FALSE;
+		  o_bMotordown:= FALSE;
+		  o_bDoormotoropen := TRUE;
+		  END_IF
+
+		END_IF
+
+	ELSIF targetlevel < level THEN
+			o_bMotorup := FALSE;
+			o_bMotordown:= TRUE;
+	END_IF
+END_IF
+
+
+
+
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="485" Count="8" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="221" Count="0" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="146" Count="0" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="499" Count="12" />
+      <LineId Id="409" Count="0" />
+      <LineId Id="364" Count="0" />
+      <LineId Id="366" Count="0" />
+      <LineId Id="514" Count="21" />
+      <LineId Id="425" Count="0" />
+      <LineId Id="363" Count="0" />
+      <LineId Id="356" Count="0" />
+      <LineId Id="351" Count="0" />
+      <LineId Id="359" Count="0" />
+      <LineId Id="353" Count="0" />
+      <LineId Id="333" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
